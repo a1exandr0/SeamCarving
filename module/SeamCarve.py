@@ -21,7 +21,6 @@ class SeamCarve:
             raise ValueError
 
     def energy_map_w_filter(self):
-        print("hi")
         if self._image is None:
             raise ValueError
         else:
