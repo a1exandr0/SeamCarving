@@ -1,6 +1,6 @@
 from scipy.ndimage.filters import convolve as conv
 import numpy as np
-from imageio import imread, imwrite
+import imageio
 import numba
 
 
@@ -13,9 +13,9 @@ class SeamCarve:
 
     def fit(self, filename, axis=0):
         if axis == 0:
-            self._image = imread(filename).astype("float32")
+            self._image = imageio.imread(filename).astype("float32")
         elif axis == 1:
-            self._image = np.rot90(imread(filename).astype("float32"))
+            self._image = np.rot90(imageio.imread(filename).astype("float32"))
             self._input_axis = 1
         else:
             raise ValueError
@@ -117,9 +117,9 @@ class SeamCarve:
 
     def build(self, filename):
         if self._input_axis == 0:
-            imwrite(filename, self._image)
+            imageio.imwrite(filename, self._image)
         elif self._input_axis == 1:
-            imwrite(filename, np.rot90(self._image, 3))
+            imageio.imwrite(filename, np.rot90(self._image, 3))
 
 
 if __name__ == '__main__':
