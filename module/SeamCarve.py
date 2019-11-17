@@ -31,16 +31,8 @@ class SeamCarve:
             ])
             dy = dx.transpose()
 
-            # dx = np.stack([dx]*3, axis=2)
-            # dy = np.stack([dy]*3, axis=2)
-            #
-            # energy_map = (np.absolute(conv(self._image, dx)) + np.absolute(conv(self._image, dy))).sum(axis=2)
-            # self._energy_map = energy_map
-            # return energy_map
-
             RGB = np.split(self._image, 3, axis=2)
             energy_map = np.zeros(self._image.shape[:2])
-
             for i in RGB:
                 i = i.reshape(self._image.shape[:2])
                 energy_map += np.absolute(conv(i, dx)) + np.absolute(conv(i, dy))
@@ -125,6 +117,6 @@ class SeamCarve:
 if __name__ == '__main__':
     s = SeamCarve()
     s.fit("lense.png", axis=0)
-    s._image = s.energy_map_w_filter()
-    # s.scale(0.65)
+    # s._image = s.energy_map_w_filter()
+    s.scale(0.65)
     s.build("out5.png")
