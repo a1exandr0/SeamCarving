@@ -1,17 +1,38 @@
-from scipy.ndimage.filters import convolve as conv
 import numpy as np
 import imageio
 import numba
+from scipy.ndimage.filters import convolve as conv
+import matplotlib.pyplot as plt
 
 
 class SeamCarve:
+    """
+    Class, that was created for reshaping images, but keeping the proportions of key objects.
+    """
 
     def __init__(self):
+        """
+        Initialization of class object.
+        Function sets fields, that will be used for computation.
+        Args:
+            self
+        Fields:
+            _image - image converted to np.array()
+            _energy_map - np.array() that contains energy map of image
+            _input_axis - is 1 or 0, shows along which image will be reshaped(0 - vertical size changed, 1 - horizontal)
+        :return: None
+        """
         self._image = None
         self._energy_map = None
         self._input_axis = 0
 
     def fit(self, filename, axis=0):
+        """
+        Converting chosen image to np.array() and rotating it if axis != 0.
+        :param filename: Name of image to load in object
+        :param axis: Axis of reshaping(0 - vertical size changed, 1 - horizontal)
+        :return: None
+        """
         if axis == 0:
             self._image = imageio.imread(filename).astype("float32")
         elif axis == 1:
@@ -21,6 +42,10 @@ class SeamCarve:
             raise ValueError
 
     def energy_map_w_filter(self):
+        """
+        Counts energy map of image, using convolution and filter matrices.
+        :return: energy map of image
+        """
         if self._image is None:
             raise ValueError
         else:
@@ -33,6 +58,7 @@ class SeamCarve:
 
             RGB = np.split(self._image, 3, axis=2)
             energy_map = np.zeros(self._image.shape[:2])
+
             for i in RGB:
                 i = i.reshape(self._image.shape[:2])
                 energy_map += np.absolute(conv(i, dx)) + np.absolute(conv(i, dy))
@@ -41,6 +67,11 @@ class SeamCarve:
             return energy_map
 
     def energy_map_arithmetical(self):
+        """
+        Counts energy map of image, using arithmetical definition of image derivatives.
+        NOTE: current method is much more complicated to compute <==> takes more time.
+        :return: energy map of image
+        """
         if self._image is None:
             raise ValueError
         else:
@@ -62,12 +93,18 @@ class SeamCarve:
 
     @numba.jit
     def _lowest_energy_seam(self):
+        """
+        Finds the best way through image, using minimum amount of energy.
+        :return: costs - np.array() that contains minimum amount of energy to get from top of image to any cell
+                    trace - np.array() that stores index of best previous cell, for each cell
+        """
         if self._image is None and self._energy_map is None:
             raise ValueError
         elif self._energy_map is None:
             self.energy_map_w_filter()
 
         Y, X = self._energy_map.shape
+
         costs = self._energy_map.copy()
         trace = np.zeros(self._energy_map.shape, dtype=np.int)
 
@@ -76,7 +113,7 @@ class SeamCarve:
                 if x == 0:
                     min_index = np.argmin(costs[y - 1][x:x + 2]) + x
                     trace[y][x] = min_index
-                    costs[y][x] += costs[y-1][min_index]
+                    costs[y][x] += costs[y - 1][min_index]
                 else:
                     min_index = np.argmin(costs[y - 1][x - 1:x + 2]) + x - 1
                     trace[y][x] = min_index
@@ -86,6 +123,10 @@ class SeamCarve:
 
     @numba.jit
     def _remove_seam(self):
+        """
+        Removes seam, that has lowest energy summary, uses _lowest_energy_seam() to find seam needed.
+        :return: _image after it was reshaped
+        """
         costs, trace = self._lowest_energy_seam()
         Y, X, Z = self._image.shape
         marker = np.ones(self._energy_map.shape, dtype=np.bool)
@@ -98,16 +139,111 @@ class SeamCarve:
         marker = np.stack([marker, marker, marker], axis=2)
         self._image = self._image[marker].reshape((Y, X-1, Z))
         self._energy_map = None
+
         return self._image
 
-    def scale(self, proportion):
+    @numba.jit
+    def _remove_seam1(self):
+        """
+        Removes seam, that has lowest energy summary, uses _lowest_energy_seam() to find seam needed.
+        :return: _image after it was reshaped
+        """
+        costs, trace = self._lowest_energy_seam()
+        Y, X, Z = self._image.shape
+        marker = np.ones(self._energy_map.shape, dtype=np.bool)
+        min_val_ind = np.argmin(costs[-1])
+
+        for y in range(Y - 1, -1, -1):
+            marker[y][min_val_ind] = False
+            min_val_ind = trace[y][min_val_ind]
+            # print(min_val_ind)
+
+        self._energy_map = self._energy_map[marker].reshape((Y, X - 1))
+        marker = np.stack([marker, marker, marker], axis=2)
+        self._image = self._image[marker].reshape((Y, X - 1, Z))
+        # self._energy_map = None
+
+        return self._image
+
+    @numba.jit
+    def _add_seam(self):
+        """
+        Adds to the image seam with averaged color next to seam with lowest energy.
+        :return: None
+        """
+        costs, trace = self._lowest_energy_seam()
+        Y, X, Z = self._image.shape
+        min_val_ind = np.argmin(costs[-1])
+
+        # plt.plot([i for i in range(X)], costs[-1])
+        # plt.show()  # used to monitor min energy changes by observation of plot image
+        # print(len(buff))
+        res = np.empty((Y, X + 1, Z))
+        res1 = np.empty((Y, X + 1))
+
+        for y in range(Y - 1, -1, -1):
+            count = 0
+            val = np.zeros(3)
+            self._energy_map[y][min_val_ind] += np.divide(self._energy_map.mean(), 2)
+            buff1 = np.insert(self._energy_map[y], min_val_ind, self._energy_map[y][min_val_ind], axis=0)
+            # buff = np.insert(self._image[y], min_val_ind, np.array([255, 0, 0]), axis=0) # highlight min energy seam
+            # buff = np.insert(self._image[y], min_val_ind, self._image[y][min_val_ind], axis=0) # copy min energy seam
+
+            if y != 0:
+                count += 1
+                val += self._image[y - 1][min_val_ind]
+
+            if y != Y - 1:
+                val += self._image[y + 1][min_val_ind]
+                count += 1
+
+            if min_val_ind != 0:
+                val += self._image[y][min_val_ind - 1]
+                count += 1
+
+            if min_val_ind != X - 1:
+                val += self._image[y][min_val_ind + 1]
+                count += 1
+
+            buff = np.insert(self._image[y], min_val_ind, val / count, axis=0)  # comment this before uncommenting above
+            res[y] = buff
+            buff1[min_val_ind] += np.divide(self._energy_map.mean(), 2)
+            res1[y] = buff1
+            min_val_ind = trace[y][min_val_ind]
+
+        self._image = res
+        self._energy_map = res1
+
+    def scale_down(self, proportion):
+        """
+        Loops _remove_seam() to scale image down, according to desired proportion.
+        :param proportion: float() used to define amount of seams to be deleted
+        :return: None
+        """
         n = int(self._image.shape[1]*(1 - proportion))
 
         for i in range(n):
-            print("{} out of {}".format(i, n))
-            self._remove_seam()
+            print("{} out of {}".format(i+1, n))
+            self._remove_seam1()
+
+    def scale_up(self, proportion):
+        """
+        Loops _add_seam() to scale image up, according to desired proportion.
+        :param proportion: float() used to define amount of seams to be added
+        :return: None
+        """
+        n = int(self._image.shape[1] * (proportion - 1))
+
+        for i in range(n):
+            print("{} out of {}".format(i+1, n))
+            self._add_seam()
 
     def build(self, filename):
+        """
+        Converts _image from np.array() back to normal image file.
+        :param filename: name of image file after conversion
+        :return: None
+        """
         if self._input_axis == 0:
             imageio.imwrite(filename, self._image)
         elif self._input_axis == 1:
@@ -116,7 +252,14 @@ class SeamCarve:
 
 if __name__ == '__main__':
     s = SeamCarve()
-    s.fit("lense.png", axis=0)
+    s.fit("flower.jpg", axis=0)
+    s.energy_map_w_filter()
+    for i in range(200, 400):
+        for j in range(150, 250):
+            s._energy_map[j][i] = -1000000
+    # s._add_null_seam()
+    s.scale_down(0.7)
+    # s._fill_zero()
     # s._image = s.energy_map_w_filter()
-    s.scale(0.65)
-    s.build("out5.png")
+    # s.scale_down(0.8)
+    s.build("out3.png")
