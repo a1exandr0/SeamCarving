@@ -20,11 +20,14 @@ class SeamCarve:
             _image - image converted to np.array()
             _energy_map - np.array() that contains energy map of image
             _input_axis - is 1 or 0, shows along which image will be reshaped(0 - vertical size changed, 1 - horizontal)
+            _mask - np.array() used for protection or targeting certain objects during reshaping by increasing
+            or decreasing energy to it's critical value
         :return: None
         """
         self._image = None
         self._energy_map = None
         self._input_axis = 0
+        self._mask = None
 
     def fit(self, filename, axis=0):
         """
@@ -40,6 +43,7 @@ class SeamCarve:
             self._input_axis = 1
         else:
             raise ValueError
+        self._mask = np.zeros(self._image.shape[:2], dtype=np.bool)
 
     def energy_map_w_filter(self):
         """
@@ -143,11 +147,20 @@ class SeamCarve:
         return self._image
 
     @numba.jit
-    def _remove_seam1(self):
+    def _remove_seam_mod(self, mask=None):
         """
         Removes seam, that has lowest energy summary, uses _lowest_energy_seam() to find seam needed.
         :return: _image after it was reshaped
         """
+        self.energy_map_w_filter()
+
+        if mask == "protect":
+            self._energy_map[self._mask] = 10 ** 6
+        elif mask == "target":
+            self._energy_map[self._mask] = -(10 ** 6)
+        else:
+            pass
+
         costs, trace = self._lowest_energy_seam()
         Y, X, Z = self._image.shape
         marker = np.ones(self._energy_map.shape, dtype=np.bool)
@@ -156,12 +169,12 @@ class SeamCarve:
         for y in range(Y - 1, -1, -1):
             marker[y][min_val_ind] = False
             min_val_ind = trace[y][min_val_ind]
-            # print(min_val_ind)
 
         self._energy_map = self._energy_map[marker].reshape((Y, X - 1))
+        self._mask = self._mask[marker].reshape((Y, X - 1))
         marker = np.stack([marker, marker, marker], axis=2)
         self._image = self._image[marker].reshape((Y, X - 1, Z))
-        # self._energy_map = None
+        self._energy_map = None
 
         return self._image
 
@@ -214,9 +227,10 @@ class SeamCarve:
         self._image = res
         self._energy_map = res1
 
-    def scale_down(self, proportion):
+    def scale_down(self, proportion, mask=None):
         """
         Loops _remove_seam() to scale image down, according to desired proportion.
+        :param mask: str used to detect if protection or targeting of certain pixels is needed
         :param proportion: float() used to define amount of seams to be deleted
         :return: None
         """
@@ -224,11 +238,12 @@ class SeamCarve:
 
         for i in range(n):
             print("{} out of {}".format(i+1, n))
-            self._remove_seam1()
+            self._remove_seam_mod(mask)
 
     def scale_up(self, proportion):
         """
         Loops _add_seam() to scale image up, according to desired proportion.
+        :param mask: str used to detect if protection or targeting of certain pixels is needed
         :param proportion: float() used to define amount of seams to be added
         :return: None
         """
@@ -251,15 +266,13 @@ class SeamCarve:
 
 
 if __name__ == '__main__':
-    s = SeamCarve()
-    s.fit("flower.jpg", axis=0)
-    s.energy_map_w_filter()
-    for i in range(200, 400):
-        for j in range(150, 250):
-            s._energy_map[j][i] = -1000000
+    # s = SeamCarve()
+    # s.fit("flower.jpg", axis=0)
     # s._add_null_seam()
-    s.scale_down(0.7)
+    # s._remove_seam_mod(mask="target")
+    # s.scale_down(0.7)
     # s._fill_zero()
     # s._image = s.energy_map_w_filter()
     # s.scale_down(0.8)
-    s.build("out3.png")
+    # s.build("out3.png")
+    pass
