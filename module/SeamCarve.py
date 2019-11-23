@@ -266,11 +266,11 @@ class SeamCarve:
 
 if __name__ == '__main__':
     s = SeamCarve()
-    s.fit("dubai.jpg", axis=1)
-    # s._add_null_seam()
-    # s._remove_seam_mod(mask="target")
-    # s.scale_down(0.7)
-    # s._fill_zero()
-    s.scale_up(1.2)
-    # s.scale_down(0.8)
-    s.build("out1.png")
+
+    s.fit("liberty.jpg", axis=0)
+    s.scale_down(0.7)
+    s.build("reduced.png")
+
+    # s.fit("liberty.jpg", axis=0)
+    # s.scale_up(1.2)  # uncomment this and comment above to test enlargement
+    # s.build("enlarged.png")
