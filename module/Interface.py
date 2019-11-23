@@ -3,7 +3,22 @@ import tkinter as tk
 from PIL import Image as IM
 from PIL import ImageTk as IMTK
 import numpy as np
+"""
+Interface to simplify usage of SeamCarving class.
+You mostly need to use interface when you want to use protective or targeting masking in order to remove or keep certain
+objects after retageting.
 
+INSTRUCTION:
+1)Run Interface.py
+2)Type image name into the console
+3)IF you want specific areas to be masked, choose between protect and target and press that button
+    3.1)Click all the areas you want to be masked
+    3.2)Press "apply weights button"
+    NOTE:Cant apply different masks at the same time(You cant protect 1 object and target another at the same time)
+4)Enter scaling proportion on the bottom of frame
+5)Press "reshape" 
+
+"""
 
 MODE = ""
 WEIGHTS = []
@@ -16,6 +31,11 @@ ENERGY_COPY = None
 
 
 def motion(event):
+    """
+    Adds circle around mouse pointer in order to make user understand what area was chosen.
+    :param event:
+    :return:
+    """
     x, y = event.x, event.y
 
     global circle
@@ -34,6 +54,11 @@ def motion(event):
 
 
 def on_click(event=None):
+    """
+    Adds all dots of circle to WEIGHTS after you click mouse button.
+    :param event:
+    :return:
+    """
     if MODE == "":
         pass
     else:
@@ -66,16 +91,32 @@ def on_click(event=None):
 
 
 def kill(event=None):
+    """
+    Stops the Interface and closes it.
+    :param event:
+    :return:
+    """
     img.destroy()
     control_panel.destroy()
 
 
 def reset_weights(event=None):
-    global WEIGHTS
+    """
+    Resets WEIGHTS list and self._mask.
+    :param event:
+    :return:
+    """
+    global WEIGHTS, IMG
     WEIGHTS = []
+    IMG.energy_map_w_filter()
 
 
 def apply_weights(event=None):
+    """
+    For each element of WEIGHTS changes self._mask and self._energy_map.
+    :param event:
+    :return:
+    """
     global WEIGHTS
     IMG.energy_map_w_filter()
     for i in WEIGHTS:
@@ -89,6 +130,11 @@ def apply_weights(event=None):
 
 
 def add_weights(event=None):
+    """
+    Turns to protect mode.
+    :param event:
+    :return:
+    """
     global MODE
     global WEIGHTS
     MODE = "protect"
@@ -97,6 +143,11 @@ def add_weights(event=None):
 
 
 def dec_weights(event=None):
+    """
+    Turns to targeting mode.
+    :param event:
+    :return:
+    """
     global MODE
     global WEIGHTS
     MODE = "target"
@@ -105,6 +156,11 @@ def dec_weights(event=None):
 
 
 def retarget(event=None):
+    """
+    Reshapes the image and saves the result in out.png
+    :param event:
+    :return:
+    """
     global SCALE
     SCALE = float(e.get())
 

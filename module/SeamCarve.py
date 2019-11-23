@@ -14,8 +14,6 @@ class SeamCarve:
         """
         Initialization of class object.
         Function sets fields, that will be used for computation.
-        Args:
-            self
         Fields:
             _image - image converted to np.array()
             _energy_map - np.array() that contains energy map of image
@@ -150,6 +148,7 @@ class SeamCarve:
     def _remove_seam_mod(self, mask=None):
         """
         Removes seam, that has lowest energy summary, uses _lowest_energy_seam() to find seam needed.
+        :param mask: str used to detect if protection or targeting of certain pixels is needed
         :return: _image after it was reshaped
         """
         self.energy_map_w_filter()
@@ -199,7 +198,7 @@ class SeamCarve:
             val = np.zeros(3)
             self._energy_map[y][min_val_ind] += np.divide(self._energy_map.mean(), 2)
             buff1 = np.insert(self._energy_map[y], min_val_ind, self._energy_map[y][min_val_ind], axis=0)
-            # buff = np.insert(self._image[y], min_val_ind, np.array([255, 0, 0]), axis=0) # highlight min energy seam
+            buff = np.insert(self._image[y], min_val_ind, np.array([255, 0, 0]), axis=0) # highlight min energy seam
             # buff = np.insert(self._image[y], min_val_ind, self._image[y][min_val_ind], axis=0) # copy min energy seam
 
             if y != 0:
@@ -218,7 +217,7 @@ class SeamCarve:
                 val += self._image[y][min_val_ind + 1]
                 count += 1
 
-            buff = np.insert(self._image[y], min_val_ind, val / count, axis=0)  # comment this before uncommenting above
+            # buff = np.insert(self._image[y], min_val_ind, val / count, axis=0)  # comment this before uncommenting above
             res[y] = buff
             buff1[min_val_ind] += np.divide(self._energy_map.mean(), 2)
             res1[y] = buff1
@@ -266,13 +265,12 @@ class SeamCarve:
 
 
 if __name__ == '__main__':
-    # s = SeamCarve()
-    # s.fit("flower.jpg", axis=0)
+    s = SeamCarve()
+    s.fit("dubai.jpg", axis=1)
     # s._add_null_seam()
     # s._remove_seam_mod(mask="target")
     # s.scale_down(0.7)
     # s._fill_zero()
-    # s._image = s.energy_map_w_filter()
+    s.scale_up(1.2)
     # s.scale_down(0.8)
-    # s.build("out3.png")
-    pass
+    s.build("out1.png")
