@@ -198,7 +198,7 @@ class SeamCarve:
             val = np.zeros(3)
             self._energy_map[y][min_val_ind] += np.divide(self._energy_map.mean(), 2)
             buff1 = np.insert(self._energy_map[y], min_val_ind, self._energy_map[y][min_val_ind], axis=0)
-            buff = np.insert(self._image[y], min_val_ind, np.array([255, 0, 0]), axis=0) # highlight min energy seam
+            # buff = np.insert(self._image[y], min_val_ind, np.array([255, 0, 0]), axis=0) # highlight min energy seam
             # buff = np.insert(self._image[y], min_val_ind, self._image[y][min_val_ind], axis=0) # copy min energy seam
 
             if y != 0:
@@ -217,7 +217,7 @@ class SeamCarve:
                 val += self._image[y][min_val_ind + 1]
                 count += 1
 
-            # buff = np.insert(self._image[y], min_val_ind, val / count, axis=0)  # comment this before uncommenting above
+            buff = np.insert(self._image[y], min_val_ind, val / count, axis=0)  # comment this before uncommenting above
             res[y] = buff
             buff1[min_val_ind] += np.divide(self._energy_map.mean(), 2)
             res1[y] = buff1
