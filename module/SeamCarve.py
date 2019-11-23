@@ -8,6 +8,12 @@ import matplotlib.pyplot as plt
 class SeamCarve:
     """
     Class, that was created for reshaping images, but keeping the proportions of key objects.
+
+    INSTRUCTION:
+    1)Use self.fit("filename", axis) to fir in image to retarget
+    2)Choose between self.scale_up() and self.scale_down()
+    3)Type in scaling proportion
+    4)Use self.build("filename") to extract the result to the file.
     """
 
     def __init__(self):
@@ -242,7 +248,6 @@ class SeamCarve:
     def scale_up(self, proportion):
         """
         Loops _add_seam() to scale image up, according to desired proportion.
-        :param mask: str used to detect if protection or targeting of certain pixels is needed
         :param proportion: float() used to define amount of seams to be added
         :return: None
         """
@@ -255,7 +260,7 @@ class SeamCarve:
     def build(self, filename):
         """
         Converts _image from np.array() back to normal image file.
-        :param filename: name of image file after conversion
+        :param filename: name of image file after retargeting
         :return: None
         """
         if self._input_axis == 0:
