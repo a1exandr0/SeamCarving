@@ -194,7 +194,7 @@ class SeamCarve:
         min_val_ind = np.argmin(costs[-1])
 
         # plt.plot([i for i in range(X)], costs[-1])
-        # plt.show()  # used to monitor min energy changes by observation of plot image
+        # plt.show()  # used to monitor min energy changes by plot image observation
         # print(len(buff))
         res = np.empty((Y, X + 1, Z))
         res1 = np.empty((Y, X + 1))
